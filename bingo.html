@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>ビンゴ（中央フリースペース）</title>
+<style>
+  body { font-family: sans-serif; padding: 20px; }
+  .card-container { display: flex; flex-wrap: wrap; gap: 20px; }
+  .bingo-card { border: 2px solid #333; width: 260px; position: relative; }
+  .bingo-card h3 { text-align: center; margin: 10px 0; }
+  table { width: 100%; border-collapse: collapse; }
+  td {
+    border: 1px solid #999;
+    width: 20%;
+    height: 40px;
+    text-align: center;
+    font-size: 20px;
+    cursor: pointer;
+  }
+  td.open { background: gold; }
+
+  td.bingo-line {
+    background: red !important;
+    color: white;
+    font-weight: bold;
+  }
+
+  .bingo-card.bingo-hit {
+    animation: shake 0.5s ease-in-out 3;
+    border-color: red;
+  }
+
+  @keyframes shake {
+    0% { transform: translate(0, 0); }
+    25% { transform: translate(5px, 0); }
+    50% { transform: translate(-5px, 0); }
+    75% { transform: translate(5px, 0); }
+    100% { transform: translate(0, 0); }
+  }
+
+  .bingo-label {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background: red;
+    color: white;
+    padding: 5px 10px;
+    font-weight: bold;
+    border-radius: 5px;
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<h1>ビンゴ（中央フリースペース）</h1>
+
+<label>カード枚数: <input type="number" id="card-count" value="3" min="1"></label>
+<br>
+<label>数字範囲: 1〜<input type="number" id="max-number" value="75" min="1"></label>
+<br><br>
+<button id="generate">ビンゴカード生成</button>
+
+<h2>ランダム数字</h2>
+<button id="draw-number">数字を出す</button>
+<div id="random-number"></div>
+
+<h2>ビンゴカード</h2>
+<div class="card-container" id="cards"></div>
+
+<script>
+function createBingoCard(maxNumber) {
+  const numbers = [];
+  while (numbers.length < 25) {
+    const n = Math.floor(Math.random() * maxNumber) + 1;
+    if (!numbers.includes(n)) numbers.push(n);
+  }
+  return numbers;
+}
+
+function renderCard(numbers, index) {
+  const card = document.createElement("div");
+  card.className = "bingo-card";
+  card.dataset.index = index;
+
+  const label = document.createElement("div");
+  label.className = "bingo-label";
+  label.textContent = "BINGO!";
+  card.appendChild(label);
+
+  const title = document.createElement("h3");
+  title.textContent = `カード ${index + 1}`;
+  card.appendChild(title);
+
+  const table = document.createElement("table");
+  for (let r = 0; r < 5; r++) {
+    const tr = document.createElement("tr");
+    for (let c = 0; c < 5; c++) {
+      const td = document.createElement("td");
+
+      const num = numbers[r * 5 + c];
+      td.textContent = num;
+      td.dataset.number = num;
+      td.dataset.row = r;
+      td.dataset.col = c;
+
+      // ★ 中央フリースペース（r=2, c=2）
+      if (r === 2 && c === 2) {
+        td.textContent = "FREE";
+        td.classList.add("open");
+        td.dataset.number = "FREE";
+      }
+
+      tr.appendChild(td);
+    }
+    table.appendChild(tr);
+  }
+  card.appendChild(table);
+  return card;
+}
+
+function checkBingo(cardElem) {
+  const cells = cardElem.querySelectorAll("td");
+  const grid = [...cells].map(td => td.classList.contains("open"));
+
+  const lines = [];
+
+  // 横
+  for (let r = 0; r < 5; r++) {
+    const row = grid.slice(r * 5, r * 5 + 5);
+    if (row.every(v => v)) lines.push({ type: "row", index: r });
+  }
+
+  // 縦
+  for (let c = 0; c < 5; c++) {
+    const col = [0,1,2,3,4].map(r => grid[r * 5 + c]);
+    if (col.every(v => v)) lines.push({ type: "col", index: c });
+  }
+
+  // 斜め
+  const diag1 = [0,6,12,18,24].map(i => grid[i]);
+  const diag2 = [4,8,12,16,20].map(i => grid[i]);
+  if (diag1.every(v => v)) lines.push({ type: "diag1" });
+  if (diag2.every(v => v)) lines.push({ type: "diag2" });
+
+  if (lines.length > 0) {
+    cardElem.classList.add("bingo-hit");
+    cardElem.querySelector(".bingo-label").style.display = "block";
+
+    lines.forEach(line => {
+      if (line.type === "row") {
+        for (let c = 0; c < 5; c++) {
+          cardElem.querySelector(`td[data-row='${line.index}'][data-col='${c}']`)
+            .classList.add("bingo-line");
+        }
+      }
+      if (line.type === "col") {
+        for (let r = 0; r < 5; r++) {
+          cardElem.querySelector(`td[data-row='${r}'][data-col='${line.index}']`)
+            .classList.add("bingo-line");
+        }
+      }
+      if (line.type === "diag1") {
+        [0,1,2,3,4].forEach(i => {
+          cardElem.querySelector(`td[data-row='${i}'][data-col='${i}']`)
+            .classList.add("bingo-line");
+        });
+      }
+      if (line.type === "diag2") {
+        [0,1,2,3,4].forEach(i => {
+          cardElem.querySelector(`td[data-row='${i}'][data-col='${4-i}']`)
+            .classList.add("bingo-line");
+        });
+      }
+    });
+  }
+}
+
+document.getElementById("generate").onclick = () => {
+  const count = Number(document.getElementById("card-count").value);
+  const maxNumber = Number(document.getElementById("max-number").value);
+  const container = document.getElementById("cards");
+  container.innerHTML = "";
+
+  window.bingoCards = [];
+
+  for (let i = 0; i < count; i++) {
+    const numbers = createBingoCard(maxNumber);
+    window.bingoCards.push(numbers);
+    const cardElem = renderCard(numbers, i);
+    container.appendChild(cardElem);
+  }
+};
+
+document.getElementById("draw-number").onclick = () => {
+  const maxNumber = Number(document.getElementById("max-number").value);
+  const n = Math.floor(Math.random() * maxNumber) + 1;
+
+  document.getElementById("random-number").textContent = `出た数字: ${n}`;
+
+  document.querySelectorAll(`td[data-number='${n}']`).forEach(td => {
+    td.classList.add("open");
+    const cardElem = td.closest(".bingo-card");
+    checkBingo(cardElem);
+  });
+};
+</script>
+
+</body>
+</html>
