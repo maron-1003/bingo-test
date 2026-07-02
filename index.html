@@ -2,13 +2,25 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+
+<!-- ★ スマホで文字が小さくならないための最重要設定 -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
 <title>ビンゴ（中央フリースペース）</title>
+
 <style>
-  body { font-family: sans-serif; padding: 20px; }
+  body { 
+    font-family: sans-serif; 
+    padding: 20px; 
+    font-size: 18px; /* PC向けの標準サイズ */
+  }
+
   .card-container { display: flex; flex-wrap: wrap; gap: 20px; }
   .bingo-card { border: 2px solid #333; width: 260px; position: relative; }
   .bingo-card h3 { text-align: center; margin: 10px 0; }
+
   table { width: 100%; border-collapse: collapse; }
+
   td {
     border: 1px solid #999;
     width: 20%;
@@ -17,6 +29,7 @@
     font-size: 20px;
     cursor: pointer;
   }
+
   td.open { background: gold; }
 
   td.bingo-line {
@@ -48,6 +61,30 @@
     font-weight: bold;
     border-radius: 5px;
     display: none;
+  }
+
+  /* ★ スマホ用の文字・ボタンサイズ調整 */
+  @media (max-width: 600px) {
+    body {
+      font-size: 4vw; /* スマホで自動調整される */
+    }
+
+    h1, h2, h3 {
+      font-size: 5vw;
+    }
+
+    label, input {
+      font-size: 4vw;
+    }
+
+    button {
+      font-size: 4vw;
+      padding: 3vw 5vw;
+    }
+
+    #random-number {
+      font-size: 6vw;
+    }
   }
 </style>
 </head>
@@ -104,7 +141,6 @@ function renderCard(numbers, index) {
       td.dataset.row = r;
       td.dataset.col = c;
 
-      // ★ 中央フリースペース（r=2, c=2）
       if (r === 2 && c === 2) {
         td.textContent = "FREE";
         td.classList.add("open");
@@ -125,19 +161,16 @@ function checkBingo(cardElem) {
 
   const lines = [];
 
-  // 横
   for (let r = 0; r < 5; r++) {
     const row = grid.slice(r * 5, r * 5 + 5);
     if (row.every(v => v)) lines.push({ type: "row", index: r });
   }
 
-  // 縦
   for (let c = 0; c < 5; c++) {
     const col = [0,1,2,3,4].map(r => grid[r * 5 + c]);
     if (col.every(v => v)) lines.push({ type: "col", index: c });
   }
 
-  // 斜め
   const diag1 = [0,6,12,18,24].map(i => grid[i]);
   const diag2 = [4,8,12,16,20].map(i => grid[i]);
   if (diag1.every(v => v)) lines.push({ type: "diag1" });
